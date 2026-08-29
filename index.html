@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>魚兒一家代購系統・登入中</title>
+<style>
+  body{
+    font-family:'Noto Sans TC','Helvetica Neue',sans-serif;
+    background:#FBF3E4;color:#3D2B1F;
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;margin:0;text-align:center;padding:24px;
+  }
+  .box{max-width:360px;}
+  .spinner{
+    width:40px;height:40px;border:4px solid #E6D7BC;border-top-color:#8B6B4A;
+    border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  p{font-size:.9rem;color:#5B6B69;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="spinner"></div>
+  <p id="status">正在確認你的LINE身分，請稍候...</p>
+</div>
+
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+// ⚠️ 這兩個值請確認跟你的LIFF ID／預購系統網址一致
+var LIFF_ID = '2011289664-ErI2FdGv';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx942H8b7zcDMlmjE_inxJ-3XjaI7EmbKvxo5cg91tOWNuZfQKbwD6wAoeZ5hJsOPBM/exec';
+
+function setStatus(msg){
+  var el = document.getElementById('status');
+  if(el) el.textContent = msg;
+}
+
+function goToShop(queryString){
+  var url = APPS_SCRIPT_URL + (queryString ? ('?' + queryString) : '');
+  window.location.href = url;
+}
+
+// 保留原本網址上的 ?goto=xxx 深連結參數（例如圖文選單直接跳購物車）
+function getGotoParam(){
+  var params = new URLSearchParams(window.location.search);
+  var goto = params.get('goto');
+  if(!goto && params.has('liff.state')){
+    var state = params.get('liff.state') || '';
+    var qIndex = state.indexOf('?');
+    if(qIndex > -1){
+      var subParams = new URLSearchParams(state.slice(qIndex+1));
+      goto = subParams.get('goto');
+    }
+  }
+  return goto;
+}
+
+var gotoParam = getGotoParam();
+
+function passThroughToShop(){
+  goToShop(gotoParam ? ('goto=' + encodeURIComponent(gotoParam)) : '');
+}
+
+if(typeof liff === 'undefined'){
+  setStatus('無法載入LINE功能，正在前往系統...');
+  passThroughToShop();
+} else {
+  liff.init({ liffId: LIFF_ID }).then(function(){
+    if(!liff.isInClient()){
+      // 不是在LINE App裡面打開（例如電腦瀏覽器），直接前往系統走手動登入
+      passThroughToShop();
+      return;
+    }
+    if(!liff.isLoggedIn()){
+      setStatus('正在跳轉LINE登入...');
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
+    setStatus('登入成功，正在前往系統...');
+    liff.getProfile().then(function(profile){
+      var qs = 'liffUserId=' + encodeURIComponent(profile.userId) +
+               '&liffName=' + encodeURIComponent(profile.displayName || '');
+      if(gotoParam) qs += '&goto=' + encodeURIComponent(gotoParam);
+      goToShop(qs);
+    }).catch(function(err){
+      setStatus('讀取LINE個人資料失敗，改用一般方式進入...');
+      passThroughToShop();
+    });
+  }).catch(function(err){
+    setStatus('初始化失敗，改用一般方式進入...');
+    passThroughToShop();
+  });
+}
+</script>
+</body>
+</html>
