@@ -85,12 +85,14 @@ if(typeof liff === 'undefined'){
       if(gotoParam) qs += '&goto=' + encodeURIComponent(gotoParam);
       goToShop(qs);
     }).catch(function(err){
-      setStatus('讀取LINE個人資料失敗，改用一般方式進入...');
-      passThroughToShop();
+      var msg = (err && (err.message || err.code)) || (function(){ try{return JSON.stringify(err);}catch(e){return String(err);} })();
+      setStatus('（除錯用）讀取LINE個人資料失敗：' + msg);
+      // 除錯期間先不要自動跳轉，讓你能看到＋截圖這則訊息
     });
   }).catch(function(err){
-    setStatus('初始化失敗，改用一般方式進入...');
-    passThroughToShop();
+    var msg = (err && (err.message || err.code)) || (function(){ try{return JSON.stringify(err);}catch(e){return String(err);} })();
+    setStatus('（除錯用）liff.init()初始化失敗：' + msg);
+    // 除錯期間先不要自動跳轉，讓你能看到＋截圖這則訊息
   });
 }
 </script>
