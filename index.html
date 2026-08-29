@@ -60,10 +60,7 @@ function getGotoParam(){
 var gotoParam = getGotoParam();
 
 function passThroughToShop(){
-  if(gotoParam){
-    window.name = JSON.stringify({ goto: gotoParam });
-  }
-  goToShop('');
+  goToShop(gotoParam ? ('goto=' + encodeURIComponent(gotoParam)) : '');
 }
 
 if(typeof liff === 'undefined'){
@@ -83,16 +80,11 @@ if(typeof liff === 'undefined'){
     }
     setStatus('登入成功，正在前往系統...');
     liff.getProfile().then(function(profile){
-      // 改用 window.name 技巧傳遞資料：Google Apps Script的網站架構會把網址參數洗掉，
-      // 但window.name這個瀏覽器特性，就算換了網域也會保留下來，剛好能繞過這個限制
-      var payload = JSON.stringify({
-        liffUserId: profile.userId,
-        liffName: profile.displayName || '',
-        goto: gotoParam || ''
-      });
-      window.name = payload;
+      var qs = 'liffUserId=' + encodeURIComponent(profile.userId) +
+               '&liffName=' + encodeURIComponent(profile.displayName || '');
+      if(gotoParam) qs += '&goto=' + encodeURIComponent(gotoParam);
       setStatus('登入成功，正在前往系統...');
-      goToShop('');
+      goToShop(qs);
     }).catch(function(err){
       var msg = (err && (err.message || err.code)) || (function(){ try{return JSON.stringify(err);}catch(e){return String(err);} })();
       setStatus('（除錯用）讀取LINE個人資料失敗：' + msg);
